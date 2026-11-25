@@ -4,7 +4,11 @@ const output = resolve('extension');
 await mkdir(output, { recursive: true });
 const result = await Bun.build({ entrypoints: ['src/extension/entry.tsx'], outdir: output, naming: 'app.js', target: 'browser', minify: true, define: { 'process.env.NODE_ENV': '"production"' } });
 if (!result.success) { for (const log of result.logs) console.error(log); process.exit(1); }
-await cp('src/extension/assistant.css', 'extension/app.css');
+const css = Bun.spawnSync(['node_modules/.bin/tailwindcss', '-i', 'src/styles.css', '-o', 'extension/app.css', '--minify']);
+if (css.exitCode !== 0) throw new Error(css.stderr.toString());
+await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'extension/pdf.worker.min.mjs');
+await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.min.mjs');
+await cp('node_modules/highlight.js/styles/github-dark.css', 'public/code.css');
 await cp('node_modules/highlight.js/styles/github-dark.css', 'extension/code.css');
 const { spawnSync } = await import('node:child_process');
 const packed = spawnSync('python3', ['-c', `import zipfile, pathlib

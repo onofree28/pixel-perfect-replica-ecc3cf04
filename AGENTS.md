@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- The Chrome extension (Manifest V3) lives in `extension/` (manifest, service worker, content script) with UI and logic modules in `src/extension/`; the `/` route renders the same UI as a preview. Why: one codebase for the installable extension and the web preview.
+- Rebuild the installable package with `bun scripts/package-extension.ts` after changing `src/extension/` or `src/styles.css`; it writes `extension/app.*` and `public/lovable-chat-assistant.zip`. Why: the preview download must match the source.
+- Credentials and history stay in `chrome.storage.local` via the service worker; no external database. GitHub writes go through one Git Data commit with a base-SHA conflict check and `force: false`. Why: security and no silent overwrites.

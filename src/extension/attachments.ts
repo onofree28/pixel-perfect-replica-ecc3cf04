@@ -13,13 +13,13 @@ export async function readAttachments(files: File[], authorize: (name: string) =
     if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
       const pdfjs = await import('pdfjs-dist');
       pdfjs.GlobalWorkerOptions.workerSrc = typeof chrome !== 'undefined' && chrome.runtime?.id ? chrome.runtime.getURL('pdf.worker.min.mjs') : '/pdf.worker.min.mjs';
-      const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false, useSystemFonts: true }).promise;
+      const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
       try {
         if (pdf.numPages > 50) throw new Error('PDF acima de 50 páginas.');
         const pages: string[] = [];
         for (let n = 1; n <= pdf.numPages; n++) { const page = await pdf.getPage(n); const content = await page.getTextContent(); pages.push(content.items.map(i => 'str' in i ? i.str : '').join(' ')); }
         text = pages.join('\n'); if (!text.trim()) throw new Error('PDF sem camada de texto. OCR não disponível.');
-      } finally { await pdf.destroy(); }
+      } finally { await pdf.cleanup(); }
     } else {
       if (file.size > MAX_FILE_BYTES) throw new Error(`Texto acima de 160 KB: ${file.name}`);
       try { text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer()); } catch { throw new Error(`Formato binário não suportado: ${file.name}`); }

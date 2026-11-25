@@ -1,23 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Assistant } from "@/extension/Assistant";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Lovable Chat Assistant 2.0 — Extensão para Chrome" },
+      { name: "description", content: "Converse com modelos de IA, analise seu repositório GitHub, revise alterações e aplique commits com segurança." },
+      { property: "og:title", content: "Lovable Chat Assistant 2.0" },
+      { property: "og:description", content: "Assistente de programação para projetos Lovable com revisão de código e commits agrupados." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Assistant,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
