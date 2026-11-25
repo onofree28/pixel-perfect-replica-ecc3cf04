@@ -11,7 +11,8 @@
   ],
   "host_permissions": [
     "https://api.github.com/*",
-    "https://openrouter.ai/*"
+    "https://openrouter.ai/*",
+    "https://github.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
