@@ -1,14 +1,49 @@
 {
   "manifest_version": 3,
   "name": "Lovable Chat Assistant 2.0",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Assistente de programação com múltiplos provedores de IA, contexto GitHub e revisão de commits.",
-  "permissions": ["storage", "activeTab"],
-  "host_permissions": ["https://api.github.com/*"],
-  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
-  "action": { "default_title": "Abrir Lovable Chat Assistant" },
-  "background": { "service_worker": "background.js" },
-  "content_scripts": [{ "matches": ["https://lovable.dev/*", "https://*.lovable.dev/*"], "js": ["content.js"] }],
-  "icons": { "48": "icon48.png", "128": "icon128.png" },
-  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'self'" }
+  "permissions": [
+    "storage",
+    "activeTab",
+    "sidePanel",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://openrouter.ai/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_title": "Abrir Lovable Chat Assistant"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://lovable.dev/*",
+        "https://*.lovable.dev/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "minimum_chrome_version": "116"
 }

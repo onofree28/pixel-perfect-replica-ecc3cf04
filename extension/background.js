@@ -1,11 +1,5 @@
 chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
-chrome.action.onClicked.addListener(async () => {
-  const target = chrome.runtime.getURL('index.html');
-  const tabs = await chrome.tabs.query({});
-  const existing = tabs.find(tab => tab.url === target);
-  if (existing?.id) { await chrome.tabs.update(existing.id, { active: true }); if (existing.windowId) await chrome.windows.update(existing.windowId, { focused: true }); }
-  else await chrome.tabs.create({ url: target });
-});
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const trusted = sender.url?.startsWith(chrome.runtime.getURL(''));
   if (message.type === 'PROJECT' && sender.tab && /^https:\/\/([\w-]+\.)?lovable\.dev\//.test(sender.url ?? '')) {

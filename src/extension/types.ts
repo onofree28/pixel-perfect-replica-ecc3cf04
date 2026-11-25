@@ -1,6 +1,6 @@
 export type Provider = 'gemini' | 'groq' | 'openrouter' | 'ollama' | 'lmstudio' | 'openai' | 'chrome';
 export type ProviderConfig = { key: string; url: string; model: string; vision: boolean };
-export type Settings = { githubToken: string; provider: Provider; providers: Record<Provider, ProviderConfig> };
+export type Settings = { githubToken: string; provider: Provider; providers: Record<Provider, ProviderConfig>; projectRepos?: Record<string, string> };
 export type Repo = { full_name: string; name: string; owner: { login: string }; default_branch: string; html_url: string };
 export type TreeFile = { path: string; sha: string; size?: number; type: string; mode: string };
 export type Snapshot = { path: string; sha: string; content: string; mode: string };

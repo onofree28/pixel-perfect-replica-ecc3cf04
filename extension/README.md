@@ -5,7 +5,7 @@
 2. Abra `chrome://extensions` (Chrome, Edge, Brave ou outro Chromium).
 3. Ative **Modo do desenvolvedor**.
 4. Clique **Carregar sem compactação** e selecione a pasta extraída.
-5. Clique no ícone da extensão para abrir o assistente em uma aba.
+5. Clique no ícone da extensão para abrir o assistente na barra lateral, ao lado do Lovable. Cada projeto Lovable lembra o repositório escolhido. Edições vão direto ao GitHub, sem usar créditos do Lovable.
 
 Não é possível instalar automaticamente. Uma instalação em um clique exige publicação na Chrome Web Store.
 

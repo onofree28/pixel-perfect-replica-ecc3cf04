@@ -23,4 +23,4 @@ with zipfile.ZipFile('/tmp/lovable-chat-assistant.zip') as z:
 console.log(packed.stdout); if (packed.status !== 0) throw new Error(packed.stderr);
 await mkdir('public', { recursive: true });
 await cp('/tmp/lovable-chat-assistant.zip', 'public/lovable-chat-assistant.zip');
-await writeFile('public/extension-version.json', JSON.stringify({ version: '2.0.0', builtAt: new Date().toISOString() }));
+await writeFile('public/extension-version.json', JSON.stringify({ version: '2.1.0', builtAt: new Date().toISOString() }));
