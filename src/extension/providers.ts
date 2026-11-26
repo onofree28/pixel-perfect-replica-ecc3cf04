@@ -1,3 +1,4 @@
+import { FREE_AUTO, freeModels, loadCooldowns, available, markLimited, resetTime, isLimitError } from './freeModels';
 import type { Attachment, Provider, ProviderConfig } from './types';
 type NativeSession = { prompt(input: string): Promise<string>; destroy(): void };
 type NativeAPI = { availability(): Promise<string>; create(options?: { signal: AbortSignal }): Promise<NativeSession> };
@@ -17,6 +18,23 @@ export async function complete(provider: Provider, config: ProviderConfig, syste
     const stop = () => session.destroy(); signal.addEventListener('abort', stop);
     try { return await session.prompt(`${system}\n\n${input}`); } finally { signal.removeEventListener('abort', stop); session.destroy(); }
   }
+  if (provider === 'openrouter' && config.model === FREE_AUTO) {
+    const base = endpoint(config).href.replace(/\/$/, '');
+    const models = await freeModels(base, signal);
+    for (let i = 0; i < models.length; i++) {
+      const free = available(models, await loadCooldowns(), Date.now());
+      const model = free[0];
+      if (!model) break;
+      try { return await complete(provider, { ...config, model }, system, input, signal, attachments); }
+      catch (e) {
+        const err = e as Error & { status?: number; reset?: string | null };
+        if (!err.status || !(isLimitError(err.status, err.message) || err.status === 404 || err.status >= 500)) throw e;
+        await markLimited(model, resetTime(Date.now(), err.status, err.message, err.reset));
+      }
+    }
+    const c = await loadCooldowns(); const next = Math.min(...models.map(m => c[m] ?? Infinity));
+    throw new Error(`Todos os modelos gratuitos atingiram o limite. Eles voltam automaticamente${Number.isFinite(next) ? ` a partir de ${new Date(next).toLocaleString()}` : ' mais tarde'}.`);
+  }
   if (!config.model) throw new Error('Informe o identificador do modelo nas configurações.');
   const base = endpoint(config).href.replace(/\/$/, '');
   if (['gemini', 'groq', 'openrouter', 'openai'].includes(provider) && !config.key) throw new Error('Configure a chave do provedor.');
@@ -35,7 +53,10 @@ export async function complete(provider: Provider, config: ProviderConfig, syste
   const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
   if (!response.ok) {
     const data = await response.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(`${providerNames[provider]} (${response.status}): ${data.error?.message ?? 'A requisição foi recusada. Verifique modelo, chave, saldo e disponibilidade.'}`);
+    const meta = (data.error as { metadata?: { headers?: Record<string, string>; raw?: string } } | undefined)?.metadata;
+    const err = new Error(`${providerNames[provider]} (${response.status}): ${[data.error?.message, meta?.raw].filter(Boolean).join(' — ') || 'A requisição foi recusada. Verifique modelo, chave, saldo e disponibilidade.'}`) as Error & { status?: number; reset?: string | null };
+    err.status = response.status; err.reset = response.headers.get('x-ratelimit-reset') ?? meta?.headers?.['X-RateLimit-Reset'] ?? null;
+    throw err;
   }
   const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[]; choices?: { message?: { content?: string }; finish_reason?: string }[]; promptFeedback?: { blockReason?: string } };
   const finish = provider === 'gemini' ? data.candidates?.[0]?.finishReason : data.choices?.[0]?.finish_reason;
