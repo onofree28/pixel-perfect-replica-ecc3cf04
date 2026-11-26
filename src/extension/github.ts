@@ -17,9 +17,21 @@ export class GitHub {
     const all: Repo[] = [];
     for (let page = 1; page <= 100; page++) {
       const batch = await this.request<Repo[]>(`/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`);
-      all.push(...batch); if (batch.length < 100) return all;
+      all.push(...batch); if (batch.length < 100) break;
     }
-    throw new Error('Há mais de 10.000 repositórios. A listagem não está completa.');
+    // Repositórios de organizações (onde a Lovable costuma criar projetos) que a listagem padrão pode omitir.
+    const orgs = await this.request<{ login: string }[]>('/user/orgs?per_page=100').catch(() => []);
+    for (const org of orgs) for (let page = 1; page <= 20; page++) {
+      const batch = await this.request<Repo[]>(`/orgs/${encodeURIComponent(org.login)}/repos?per_page=100&page=${page}&type=all`).catch(() => [] as Repo[]);
+      all.push(...batch); if (batch.length < 100) break;
+    }
+    const seen = new Set<string>();
+    return all.filter(r => !seen.has(r.full_name) && seen.add(r.full_name));
+  }
+  async repo(fullName: string): Promise<Repo> {
+    const name = fullName.trim().replace(/^https:\/\/github\.com\//, '').replace(/\.git$|\/$/g, '');
+    if (!/^[\w.-]+\/[\w.-]+$/.test(name)) throw new Error('Use o formato dono/repositório ou cole o link do GitHub.');
+    return this.request<Repo>(`/repos/${name}`);
   }
   async branches(repo: string): Promise<string[]> {
     const all: string[] = [];
