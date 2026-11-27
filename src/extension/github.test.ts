@@ -34,3 +34,12 @@ describe('Commits Git Data', () => {
     await expect(new GitHub('test-token').tree('owner/repo', 'base')).rejects.toThrow('truncada');
   });
 });
+import { vi as vi2, it as it2, expect as expect2 } from 'vitest';
+import { GitHub as GH2 } from './github';
+it2('não desfaz se o projeto mudou depois do envio', async () => {
+  const f = vi2.fn(async () => new Response(JSON.stringify({ object: { sha: 'outro' } }), { status: 200 }));
+  vi2.stubGlobal('fetch', f);
+  await expect2(new GH2('t').revert('a/b', 'main', 'meu')).rejects.toThrow('O projeto mudou');
+  expect2(f).toHaveBeenCalledTimes(1);
+  vi2.unstubAllGlobals();
+});

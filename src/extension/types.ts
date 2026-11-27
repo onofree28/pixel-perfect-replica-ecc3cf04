@@ -8,7 +8,7 @@ export type Change = { path: string; operation: 'create' | 'update' | 'delete'; 
 export type Message = { id: string; role: 'user' | 'assistant'; content: string; model?: string };
 export type Attachment = { name: string; type: string; text?: string; data?: string; destination: string };
 export type Pending = { repo: string; branch: string; base: string; plan: string; changes: Change[] };
-export type Conversation = { id: string; title: string; repo: string; branch: string; messages: Message[]; summary: string; pending: Pending | null; updated: number };
+export type Conversation = { id: string; title: string; repo: string; branch: string; messages: Message[]; summary: string; pending: Pending | null; updated: number; lastCommit?: { repo: string; branch: string; sha: string } };
 export const defaults: Settings = {
   githubToken: '', provider: 'gemini', providers: {
     gemini: { key: '', url: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash', vision: true },

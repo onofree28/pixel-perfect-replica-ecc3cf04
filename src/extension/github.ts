@@ -75,4 +75,13 @@ export class GitHub {
     if (await this.head(repo, branch) !== commit.sha) throw new Error(`Não foi possível confirmar o estado final. Verifique o commit ${commit.sha} no GitHub antes de tentar novamente.`);
     return { sha: commit.sha, html_url: `https://github.com/${encode(repo)}/commit/${commit.sha}` };
   }
+  async revert(repo: string, branch: string, sha: string): Promise<{ sha: string; html_url: string }> {
+    if (await this.head(repo, branch) !== sha) throw new Error('O projeto mudou depois do último envio. Desfaça pelo histórico do Lovable ou do GitHub para não perder essas alterações.');
+    const target = await this.request<{ parents: { sha: string }[] }>(`/repos/${encode(repo)}/git/commits/${sha}`);
+    const parent = target.parents[0]?.sha; if (!parent || target.parents.length !== 1) throw new Error('Este envio não pode ser desfeito automaticamente.');
+    const before = await this.request<{ tree: { sha: string } }>(`/repos/${encode(repo)}/git/commits/${parent}`);
+    const commit = await this.request<{ sha: string }>(`/repos/${encode(repo)}/git/commits`, 'POST', { message: `Desfaz ${sha.slice(0, 8)}`, tree: before.tree.sha, parents: [sha] });
+    await this.request(`/repos/${encode(repo)}/git/refs/heads/${encode(branch)}`, 'PATCH', { sha: commit.sha, force: false });
+    return { sha: commit.sha, html_url: `https://github.com/${encode(repo)}/commit/${commit.sha}` };
+  }
 }
