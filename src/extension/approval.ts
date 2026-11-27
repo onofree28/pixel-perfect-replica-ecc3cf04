@@ -1,0 +1,1 @@
+export function isApproval(text: string): boolean { return /^(ok[,! ]*)?(pode |manda |envia|enviar|envie|autorizo|aprovado|aprovo|commit|faz o commit|sobe|subir|manda pro git|pode mandar)/i.test(text.trim()) || /\b(envi[ae]r?|mand[ae]r?|sobe|subir)\b.*\b(git|github)\b/i.test(text); }
