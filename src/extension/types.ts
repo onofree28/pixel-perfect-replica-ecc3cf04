@@ -9,6 +9,7 @@ export type Message = { id: string; role: 'user' | 'assistant'; content: string;
 export type Attachment = { name: string; type: string; text?: string; data?: string; destination: string };
 export type Pending = { repo: string; branch: string; base: string; plan: string; changes: Change[] };
 export type Conversation = { id: string; title: string; repo: string; branch: string; messages: Message[]; summary: string; pending: Pending | null; updated: number; lastCommit?: { repo: string; branch: string; sha: string } };
+export const GITHUB_CLIENT_ID = 'Ov23liFoS2c1TYWqEGv9';
 export const defaults: Settings = {
   githubToken: '', provider: 'gemini', providers: {
     gemini: { key: '', url: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash', vision: true },
