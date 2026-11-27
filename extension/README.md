@@ -12,10 +12,15 @@ Não é possível instalar automaticamente. Uma instalação em um clique exige 
 ## GitHub
 Em Settings → Developer settings → Personal access tokens → Fine-grained tokens, crie um token limitado aos repositórios desejados, com **Contents: Read and write** e Metadata: Read. Para branches protegidas, cumpra as regras do repositório; a extensão não as contorna. Tokens de organização podem exigir aprovação. Alterações em workflows podem exigir permissão adicional Workflows. Nunca cole tokens no chat.
 
-## Provedores
-Configure separadamente modelo, chave e endereço de cada serviço. Gemini usa generateContent; Groq, OpenRouter, Ollama, LM Studio e APIs compatíveis com OpenAI usam chat/completions. Testar conexão faz uma chamada real e pode consumir créditos do provedor. O modelo deve ser informado conforme o catálogo do serviço. Marque suporte visual somente quando confirmado na documentação do modelo.
+## Inteligência artificial
+Escolha uma das conexões disponíveis nas configurações:
 
-Ollama: execute o serviço local, baixe um modelo e permita a origem da extensão no `OLLAMA_ORIGINS` quando necessário. LM Studio: carregue um modelo e inicie o servidor local OpenAI-compatible; permita a origem da extensão/CORS se necessário. Um erro de conexão não indica que o modelo está funcionando. A Prompt API depende da versão do Chrome, hardware, disponibilidade e download do modelo; o adaptador verifica a disponibilidade antes de usar.
+- **OpenRouter:** entre pela sua conta, sem copiar chave. O modo gratuito seleciona modelos gratuitos automaticamente e respeita os limites definidos pelo OpenRouter.
+- **Ollama:** inicie o Ollama no computador, baixe um modelo e use **Buscar modelos instalados**. Se necessário, permita a origem da extensão em `OLLAMA_ORIGINS`.
+- **LM Studio:** carregue um modelo, inicie o servidor local na aba Developer e use **Buscar modelos instalados**. Habilite CORS para a origem da extensão se necessário.
+- **IA do Chrome:** disponível apenas em versões, dispositivos e configurações compatíveis; a extensão verifica a disponibilidade antes de usar.
+
+Essas opções não pedem que a pessoa digite uma chave de API. A conexão com uma assinatura ChatGPT ainda não está disponível nesta extensão; o fluxo oficial para apps locais de código aberto exige um callback local que o pacote Manifest V3 não fornece. O fluxo também depende de plano elegível.
 
 ## Fluxo e segurança
 Selecione repositório e branch. A IA seleciona arquivos e busca dependências em até três rodadas, mostra o plano e prepara conteúdos completos. Revise o diff, escolha os arquivos e confirme explicitamente o commit. Todas as alterações selecionadas são agrupadas em uma árvore e um único commit. Uma mudança externa na branch bloqueia a aplicação; o update da referência nunca usa force.

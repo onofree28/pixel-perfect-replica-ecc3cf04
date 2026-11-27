@@ -1,9 +1,20 @@
-import { FREE_AUTO, freeModels, loadCooldowns, available, markLimited, resetTime, isLimitError } from './freeModels';
-import type { Attachment, Provider, ProviderConfig } from './types';
+import { FREE_AUTO, accountScope, freeModels, loadCooldowns, available, markLimited, resetTime, isLimitError } from './freeModels';
+import { selectableProviders, type Attachment, type Provider, type ProviderConfig } from './types';
 type NativeSession = { prompt(input: string): Promise<string>; destroy(): void };
 type NativeAPI = { availability(): Promise<string>; create(options?: { signal: AbortSignal }): Promise<NativeSession> };
 function nativeAPI(): NativeAPI | undefined { return (globalThis as typeof globalThis & { LanguageModel?: NativeAPI }).LanguageModel; }
 export const providerNames: Record<Provider, string> = { gemini: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter', ollama: 'Ollama', lmstudio: 'LM Studio', openai: 'OpenAI compatível', chrome: 'IA nativa do Chrome' };
+export { selectableProviders };
+export async function discoverModels(provider: Provider, config: ProviderConfig, signal: AbortSignal): Promise<string[]> {
+  if (provider !== 'ollama' && provider !== 'lmstudio') throw new Error('A descoberta de modelos está disponível para Ollama e LM Studio.');
+  const base = endpoint(config).href.replace(/\/$/, '');
+  const response = await fetch(`${base}/models`, { signal });
+  if (!response.ok) throw new Error(`${providerNames[provider]} não respondeu. Confira se o servidor está aberto e o endereço está correto.`);
+  const data = await response.json() as { data?: { id?: string }[] };
+  const models = (data.data ?? []).map(model => model.id).filter((id): id is string => Boolean(id));
+  if (!models.length) throw new Error('Nenhum modelo encontrado. Baixe um modelo e tente novamente.');
+  return models;
+}
 export function endpoint(config: ProviderConfig): URL {
   const url = new URL(config.url);
   if (url.username || url.password || url.search || url.hash || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))) throw new Error('Use HTTPS ou HTTP apenas para localhost. Não inclua credenciais na URL.');
@@ -19,20 +30,22 @@ export async function complete(provider: Provider, config: ProviderConfig, syste
     try { return await session.prompt(`${system}\n\n${input}`); } finally { signal.removeEventListener('abort', stop); session.destroy(); }
   }
   if (provider === 'openrouter' && config.model === FREE_AUTO) {
+    if (!config.key) throw new Error('Configure a chave da conta OpenRouter.');
     const base = endpoint(config).href.replace(/\/$/, '');
+    const scope = await accountScope(config.key, base, signal);
     const models = await freeModels(base, signal);
     for (let i = 0; i < models.length; i++) {
-      const free = available(models, await loadCooldowns(), Date.now());
+      const free = available(models, await loadCooldowns(scope), Date.now());
       const model = free[0];
       if (!model) break;
       try { return await complete(provider, { ...config, model }, system, input, signal, attachments); }
       catch (e) {
         const err = e as Error & { status?: number; reset?: string | null };
         if (!err.status || !(isLimitError(err.status, err.message) || err.status === 404 || err.status >= 500)) throw e;
-        await markLimited(model, resetTime(Date.now(), err.status, err.message, err.reset));
+        await markLimited(model, resetTime(Date.now(), err.status, err.message, err.reset), scope);
       }
     }
-    const c = await loadCooldowns(); const next = Math.min(...models.map(m => c[m] ?? Infinity));
+    const c = await loadCooldowns(scope); const next = Math.min(...models.map(m => c[m] ?? Infinity));
     throw new Error(`Todos os modelos gratuitos atingiram o limite. Eles voltam automaticamente${Number.isFinite(next) ? ` a partir de ${new Date(next).toLocaleString()}` : ' mais tarde'}.`);
   }
   if (!config.model) throw new Error('Informe o identificador do modelo nas configurações.');

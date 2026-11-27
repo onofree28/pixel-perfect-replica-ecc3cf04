@@ -200,6 +200,10 @@
 .file-path { font-family: var(--font-mono); font-size: .8rem; color: var(--primary); }
 .file-preview { overflow: auto; max-height: 65vh; padding: 1rem; background: var(--sunken); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font-mono); font-size: .76rem; }
 .error-banner { display: flex; justify-content: space-between; align-items: center; margin: 0 1rem .5rem; padding: .45rem .5rem .45rem .9rem; border: 1px solid var(--danger); border-radius: var(--radius); color: var(--danger); background: oklch(0.7 0.18 25 / 10%); font-size: .82rem; }
+.error-banner.with-actions { align-items: flex-start; gap: .6rem; }
+.error-message { display: grid; gap: .55rem; min-width: 0; }
+.openrouter-recovery { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; color: var(--foreground); }
+.openrouter-recovery > span { width: 100%; color: var(--muted-foreground); font-size: .75rem; }
 .commit-confirmed { display: flex; gap: .4rem; align-items: center; margin: 0 1rem .5rem; padding: .5rem .9rem; border: 1px solid var(--success); border-radius: var(--radius); color: var(--success); font-size: .82rem; }
 .composer-area { padding: 0 1rem .8rem; }
 .attachments { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; align-items: center; }
@@ -255,6 +259,12 @@
 .settings-layout { display: grid; grid-template-columns: 210px 1fr; min-height: 0; overflow: hidden; }
 .settings-nav { display: grid; align-content: start; gap: .15rem; padding: .8rem; border-right: 1px solid var(--border); overflow-y: auto; } .settings-nav button { justify-content: flex-start; }
 .settings-content h3 { font-weight: 700; font-size: 1rem; }
+.settings-nav-label { padding: .8rem .65rem .25rem; color: var(--muted-foreground); font-size: .65rem; letter-spacing: .08em; }
+.settings-content select { width: 100%; padding: .55rem .7rem; border: 1px solid var(--input); border-radius: var(--radius); background: var(--sunken); color: var(--foreground); font-size: .86rem; }
+.connection-status { display: flex; align-items: center; gap: .55rem; font-size: .84rem; }
+.connection-status button { margin-left: auto; }
+.advanced-settings { display: grid; gap: .8rem; padding: .8rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: .8rem; }
+.advanced-settings summary { cursor: pointer; color: var(--muted-foreground); }
 .notice { padding: .7rem .85rem; border: 1px solid var(--border); border-left: 3px solid var(--warning); border-radius: var(--radius); background: var(--sunken); font-size: .8rem; color: var(--foreground); }
 .security-note { display: flex; gap: .5rem; font-size: .74rem; color: var(--muted-foreground); } .security-note svg { color: var(--primary); flex-shrink: 0; }
 .external-link { display: inline-flex; gap: .3rem; align-items: center; font-size: .8rem; color: var(--primary); }

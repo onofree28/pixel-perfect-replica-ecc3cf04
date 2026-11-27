@@ -9,7 +9,7 @@ function json(text: string): Record<string, unknown> {
 }
 export async function runAgent(settings: Settings, conversation: Conversation, prompt: string, attachments: Attachment[], signal: AbortSignal, progress: (value: string) => void, allowSensitive: (path: string) => Promise<boolean>): Promise<{ answer: string; pending: Pending | null; summary: string }> {
   const config = settings.providers[settings.provider];
-  const secrets = [settings.githubToken, ...Object.values(settings.providers).map(p => p.key)];
+  const secrets = [settings.githubToken, ...Object.values(settings.providers).map(p => p.key), ...(settings.openRouterAccounts ?? []).map(account => account.key)];
   const clean = (s: string) => redact(s, secrets);
   const history = conversation.messages.slice(-12).map(m => `${m.role === 'user' ? 'USUÁRIO' : 'ASSISTENTE (você)'}: ${clean(m.content)}`).join('\n').slice(-45000);
   let summary = conversation.summary;
@@ -44,7 +44,7 @@ export async function runAgent(settings: Settings, conversation: Conversation, p
       if (!file || sensitivePath(path) || !textFile(path)) throw new Error(`Arquivo inválido, binário ou sensível solicitado: ${path}`);
       progress(`Lendo ${path}`);
       const snapshot = await github.read(conversation.repo, file);
-      if (sensitiveContent(snapshot.content) && !await allowSensitive(path)) throw new Error(`Envio não autorizado: ${path}`);
+      if (sensitiveContent(snapshot.content) && !await allowSensitive(path)) throw new Error(`Envio de conteúdo sensível cancelado: ${path}. O arquivo não foi enviado ao provedor de IA.`);
       contextSize += snapshot.content.length;
       if (contextSize > MAX_CONTEXT_BYTES) throw new Error('O contexto excedeu 600 KB. Reduza o escopo da solicitação.');
       snapshots.push(snapshot);

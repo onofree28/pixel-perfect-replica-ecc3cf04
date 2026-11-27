@@ -11,7 +11,16 @@ await cp('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.
 await cp('node_modules/highlight.js/styles/github-dark.css', 'public/code.css');
 await cp('node_modules/highlight.js/styles/github-dark.css', 'extension/code.css');
 const { spawnSync } = await import('node:child_process');
-const packed = spawnSync('python3', ['-c', `import zipfile, pathlib
+const packed = process.platform === 'win32'
+  ? spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `$ErrorActionPreference = 'Stop'
+$destination = Join-Path (Get-Location) 'public/lovable-chat-assistant.zip'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Force }
+[System.IO.Compression.ZipFile]::CreateFromDirectory((Join-Path (Get-Location) 'extension'), $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+$archive = [System.IO.Compression.ZipFile]::OpenRead($destination)
+try { if ($archive.Entries.Count -eq 0) { throw 'O pacote da extensão está vazio.' } } finally { $archive.Dispose() }
+Write-Output "Pacote criado: $destination"`], { encoding: 'utf8', cwd: process.cwd() })
+  : spawnSync('python3', ['-c', `import zipfile, pathlib
 root=pathlib.Path('extension')
 with zipfile.ZipFile('/tmp/lovable-chat-assistant.zip','w',zipfile.ZIP_DEFLATED) as z:
  for p in sorted(root.rglob('*')):
@@ -22,5 +31,5 @@ with zipfile.ZipFile('/tmp/lovable-chat-assistant.zip') as z:
 `], { encoding: 'utf8' });
 console.log(packed.stdout); if (packed.status !== 0) throw new Error(packed.stderr);
 await mkdir('public', { recursive: true });
-await cp('/tmp/lovable-chat-assistant.zip', 'public/lovable-chat-assistant.zip');
+if (process.platform !== 'win32') await cp('/tmp/lovable-chat-assistant.zip', 'public/lovable-chat-assistant.zip');
 await writeFile('public/extension-version.json', JSON.stringify({ version: '2.1.0', builtAt: new Date().toISOString() }));

@@ -1,30 +1,122 @@
-import { GITHUB_CLIENT_ID } from './types';
+import { GITHUB_CLIENT_ID, selectableProviders, type Settings, type Provider } from './types';
 import { useState } from 'react';
-import { CheckCircle2, ExternalLink, KeyRound, Loader2, ShieldCheck, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ExternalLink, KeyRound, Loader2, RefreshCw, ShieldCheck, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { endpoint, providerNames, testProvider } from './providers';
+import { discoverModels, endpoint, providerNames } from './providers';
 import { GitHub } from './github';
 import { inExtension } from './storage';
 import { redact } from './security';
 import { githubLogin, openRouterLogin } from './oauth';
-import type { Settings, Provider } from './types';
+import { addOpenRouterAccount, selectOpenRouterAccount } from './openrouterAccounts';
+
+type SettingsTab = Provider | 'github';
 export function SettingsPanel({ settings, onSave, close }: { settings: Settings; onSave: (s: Settings) => Promise<void>; close: () => void }) {
-  const [draft, setDraft] = useState(() => structuredClone(settings)); const [tab, setTab] = useState<Provider | 'github'>(settings.provider); const [status, setStatus] = useState(''); const [busy, setBusy] = useState(false);
+  const initialProvider = selectableProviders.includes(settings.provider) ? settings.provider : 'openrouter';
+  const [draft, setDraft] = useState(() => ({ ...structuredClone(settings), provider: initialProvider }));
+  const [tab, setTab] = useState<SettingsTab>(initialProvider);
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
   const enabled = inExtension();
-  const cfg = tab !== 'github' ? draft.providers[tab] : null;
-  const update = (key: string, value: string | boolean) => { if (tab !== 'github') setDraft({ ...draft, providers: { ...draft.providers, [tab]: { ...draft.providers[tab], [key]: value } } }); };
-  async function grant() {
-    if (!enabled) throw new Error('Instale a extensão para configurar suas credenciais.');
-    const urls = [...new Set(Object.entries(draft.providers).filter(([p, c]) => p !== 'chrome' && c.url && (p === draft.provider || Boolean(c.key) || Boolean(c.model && ['ollama', 'lmstudio'].includes(p)))).map(([, c]) => `${endpoint(c).origin}/*`))];
-    if (urls.length && !await chrome.permissions.request({ origins: urls })) throw new Error('Permissão de acesso ao provedor não autorizada.');
+  const config = tab !== 'github' ? draft.providers[tab] : null;
+
+  function chooseTab(next: SettingsTab) { setTab(next); setStatus(''); setModels([]); }
+  function updateProvider(provider: Provider, key: string, value: string | boolean) {
+    setDraft(current => ({ ...current, providers: { ...current.providers, [provider]: { ...current.providers[provider], [key]: value } } }));
   }
-  async function test() {
+  async function grant(provider: Provider) {
+    if (!enabled) throw new Error('Instale a extensão para configurar conexões.');
+    if (provider === 'chrome') return;
+    const url = endpoint(draft.providers[provider]);
+    if (!await chrome.permissions.request({ origins: [`${url.origin}/*`] })) throw new Error('Permissão de acesso ao provedor não autorizada.');
+  }
+  async function login() {
     setBusy(true); setStatus('');
-    try { await grant(); if (tab === 'github') { const user = await new GitHub(draft.githubToken).request<{ login: string }>('/user'); setStatus(`GitHub conectado: ${user.login}`); } else setStatus(await testProvider(tab, draft.providers[tab], new AbortController().signal)); }
-    catch (e) { setStatus(redact(e instanceof Error ? e.message : 'Falha na conexão.', [draft.githubToken, ...Object.values(draft.providers).map(p => p.key)])); } finally { setBusy(false); }
+    try {
+      const account = await openRouterLogin();
+      setDraft(current => { const added = addOpenRouterAccount(current, account.key, account.userId); return { ...added, provider: 'openrouter', providers: { ...added.providers, openrouter: { ...added.providers.openrouter, model: 'free:auto' } } }; });
+      setStatus('Conta OpenRouter adicionada. Salve para usar os modelos gratuitos.');
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Falha no login.'); }
+    finally { setBusy(false); }
   }
-  async function login() { setBusy(true); setStatus(''); try { const key = await openRouterLogin(); setDraft(d => ({ ...d, provider: 'openrouter', providers: { ...d.providers, openrouter: { ...d.providers.openrouter, key, model: d.providers.openrouter.model || 'openrouter/auto' } } })); setStatus('Conectado ao OpenRouter sem copiar chave. Salve as configurações.'); } catch (e) { setStatus(e instanceof Error ? e.message : 'Falha no login.'); } finally { setBusy(false); } }
-  async function ghLogin() { setBusy(true); setStatus(''); try { const token = await githubLogin(draft.githubClientId || GITHUB_CLIENT_ID, (code) => setStatus(`Digite o código ${code} na página do GitHub que abriu e autorize.`), new AbortController().signal); setDraft(d => ({ ...d, githubToken: token })); setStatus('GitHub conectado por login. Salve as configurações.'); } catch (e) { setStatus(e instanceof Error ? e.message : 'Falha no login.'); } finally { setBusy(false); } }
-  async function save() { setBusy(true); try { await grant(); await onSave(draft); close(); } catch (e) { setStatus(e instanceof Error ? e.message : 'Não foi possível salvar.'); } finally { setBusy(false); } }
-  return <div className="modal-backdrop"><section className="settings-modal" role="dialog" aria-modal="true" aria-label="Configurações"><header className="modal-title"><div><span className="eyebrow">CONFIGURAÇÃO LOCAL</span><h2>Conexões e modelos</h2></div><Button variant="ghost" size="icon" onClick={close} aria-label="Fechar configurações"><X /></Button></header><div className="settings-layout"><nav className="settings-nav"><Button variant={tab === 'github' ? 'secondary' : 'ghost'} onClick={() => { setTab('github'); setStatus(''); }}><KeyRound /> GitHub</Button>{(Object.keys(providerNames) as Provider[]).map(p => <Button key={p} variant={tab === p ? 'secondary' : 'ghost'} onClick={() => { setTab(p); setStatus(''); }}>{providerNames[p]}</Button>)}</nav><div className="settings-content">{!enabled && <div className="notice">Configure credenciais somente na extensão instalada. A prévia web não as armazena.</div>}{tab === 'github' ? <><h3>GitHub</h3><p className="muted">Token limitado aos repositórios autorizados. Permissão Contents: leitura e escrita.</p><Button disabled={!enabled || busy} onClick={ghLogin}><KeyRound /> Entrar com GitHub</Button><a className="external-link" href="https://github.com/settings/applications/new" target="_blank" rel="noreferrer">Criar OAuth App (marque Enable Device Flow) <ExternalLink size={14} /></a><p className="muted">Ou use um token:</p><label>Personal Access Token<input disabled={!enabled} type="password" autoComplete="off" value={draft.githubToken} onChange={e => setDraft({ ...draft, githubToken: e.target.value })} placeholder="Token GitHub" /></label><Button variant="ghost" size="sm" onClick={() => setDraft({ ...draft, githubToken: '' })}><Trash2 /> Remover token</Button><a className="external-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">Criar token fine-grained <ExternalLink size={14} /></a></> : cfg && <><h3>{providerNames[tab]}</h3>{tab === 'chrome' ? <p className="muted">Disponibilidade depende do Chrome e do dispositivo. O teste consulta a Prompt API real.</p> : <>{tab === 'openrouter' && <><Button disabled={!enabled || busy} onClick={login}><KeyRound /> Entrar com OpenRouter (sem copiar chave)</Button><p className="muted">Acesso a centenas de modelos, inclusive gratuitos, com sua conta OpenRouter.</p><Button variant="secondary" disabled={!enabled} onClick={() => setDraft(d => ({ ...d, provider: 'openrouter', providers: { ...d.providers, openrouter: { ...d.providers.openrouter, model: 'free:auto' } } }))}>Modelo grátis (troca automática)</Button><p className="muted">Usa modelos gratuitos e passa para o próximo quando um atinge o limite. Cada um volta sozinho quando o limite renova.</p></>}{['ollama', 'lmstudio'].includes(tab) && <p className="muted">Roda no seu computador, sem chave e sem custo.</p>}<label>Chave da API<input disabled={!enabled} type="password" autoComplete="off" value={cfg.key} onChange={e => update('key', e.target.value)} placeholder={['ollama', 'lmstudio'].includes(tab) ? 'Opcional para servidor local' : 'Chave do provedor'} /></label><label>Endereço da API<input disabled={!enabled} value={cfg.url} onChange={e => update('url', e.target.value)} /></label><label>Identificador do modelo<input disabled={!enabled} value={cfg.model} onChange={e => update('model', e.target.value)} placeholder="ID exato do modelo" /></label><label className="check-label"><input type="checkbox" disabled={!enabled} checked={cfg.vision} onChange={e => update('vision', e.target.checked)} /> Suporte a imagens confirmado na documentação do modelo</label><Button variant="ghost" size="sm" onClick={() => update('key', '')}><Trash2 /> Remover chave</Button></>}<label className="check-label"><input type="radio" checked={draft.provider === tab} onChange={() => setDraft({ ...draft, provider: tab })} /> Usar este provedor</label></>}{status && <div className="notice" role="status">{status}</div>}<div className="security-note"><ShieldCheck size={17} /><span>Armazenado no perfil do Chrome, sem criptografia de cofre. Nunca enviado como contexto à IA.</span></div></div></div><footer className="modal-footer"><Button variant="outline" disabled={!enabled || busy} onClick={test}>{busy ? <Loader2 className="spin" /> : <CheckCircle2 />} Testar conexão</Button><Button disabled={!enabled || busy} onClick={save}>Salvar configurações</Button></footer></section></div>;
+  async function ghLogin() {
+    setBusy(true); setStatus('');
+    try {
+      const token = await githubLogin(draft.githubClientId || GITHUB_CLIENT_ID, code => setStatus(`Digite o código ${code} na página do GitHub que abriu e autorize.`), new AbortController().signal);
+      setDraft(current => ({ ...current, githubToken: token }));
+      setStatus('GitHub conectado por login. Salve as configurações.');
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Falha no login.'); }
+    finally { setBusy(false); }
+  }
+  async function testGitHub() {
+    setBusy(true); setStatus('');
+    try {
+      const user = await new GitHub(draft.githubToken).request<{ login: string }>('/user');
+      setStatus(`GitHub conectado: ${user.login}`);
+    } catch (error) { setStatus(redact(error instanceof Error ? error.message : 'Falha na conexão.', [draft.githubToken, ...Object.values(draft.providers).map(provider => provider.key), ...(draft.openRouterAccounts ?? []).map(account => account.key)])); }
+    finally { setBusy(false); }
+  }
+  async function findModels(provider: Provider) {
+    setBusy(true); setStatus('');
+    try {
+      await grant(provider);
+      const found = await discoverModels(provider, draft.providers[provider], new AbortController().signal);
+      setModels(found);
+      if (!found.includes(draft.providers[provider].model)) updateProvider(provider, 'model', found[0]!);
+      setStatus(`${found.length} modelo(s) encontrado(s).`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Não foi possível encontrar modelos.'); }
+    finally { setBusy(false); }
+  }
+  async function save() {
+    setBusy(true);
+    try {
+      if (tab !== 'github' && tab === draft.provider) await grant(tab);
+      await onSave(draft);
+      close();
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Não foi possível salvar.'); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="modal-backdrop"><section className="settings-modal" role="dialog" aria-modal="true" aria-label="Configurações">
+    <header className="modal-title"><div><span className="eyebrow">CONEXÕES</span><h2>Configure seus serviços</h2></div><Button variant="ghost" size="icon" onClick={close} aria-label="Fechar configurações"><X /></Button></header>
+    <div className="settings-layout">
+      <nav className="settings-nav" aria-label="Serviços">
+        <Button variant={tab === 'github' ? 'secondary' : 'ghost'} onClick={() => chooseTab('github')}><KeyRound /> GitHub</Button>
+        <div className="settings-nav-label">INTELIGÊNCIA ARTIFICIAL</div>
+        {selectableProviders.map(provider => <Button key={provider} variant={tab === provider ? 'secondary' : 'ghost'} onClick={() => chooseTab(provider)}>{providerNames[provider]}</Button>)}
+      </nav>
+      <div className="settings-content">
+        {!enabled && <div className="notice">Instale a extensão para conectar contas e serviços locais. Esta prévia não armazena credenciais.</div>}
+        {tab === 'github' ? <>
+          <div><h3>Conecte seu GitHub</h3><p className="muted">O login autoriza a extensão a ler e propor alterações nos repositórios escolhidos.</p></div>
+          <Button disabled={!enabled || busy} onClick={() => void ghLogin()}><KeyRound /> Entrar com GitHub</Button>
+          {draft.githubToken && <div className="connection-status"><span className="status-dot connected" /> GitHub conectado</div>}
+          <details className="advanced-settings"><summary>Usar token do GitHub</summary><label>Token de acesso<input disabled={!enabled} type="password" autoComplete="off" value={draft.githubToken} onChange={event => setDraft(current => ({ ...current, githubToken: event.target.value }))} placeholder="Cole o token" /></label><a className="external-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">Criar token no GitHub <ExternalLink size={14} /></a></details>
+        </> : config && <>
+          <div><h3>{providerNames[tab]}</h3>
+            {tab === 'openrouter' && <p className="muted">Entre com sua conta OpenRouter. Não é necessário copiar uma chave. O modo gratuito escolhe modelos disponíveis automaticamente.</p>}
+            {tab === 'ollama' && <p className="muted">Use modelos instalados no seu computador. Abra o Ollama antes de conectar; não precisa de conta nem chave.</p>}
+            {tab === 'lmstudio' && <p className="muted">Use modelos baixados no LM Studio. Inicie o servidor local na aba Developer; não precisa de conta nem chave.</p>}
+            {tab === 'chrome' && <p className="muted">Usa a IA integrada ao Chrome quando disponível neste navegador e dispositivo. Não precisa de conta ou configuração.</p>}
+          </div>
+          {tab === 'openrouter' && <>
+            {(draft.openRouterAccounts?.length ?? 0) > 0 && <label>Conta ativa<select value={draft.activeOpenRouterAccountId ?? ''} onChange={event => setDraft(current => selectOpenRouterAccount(current, event.target.value))}>{draft.openRouterAccounts?.map((account, index) => <option key={account.id} value={account.id}>{account.label || `Conta ${index + 1}`}</option>)}</select></label>}
+            {config.key && <div className="connection-status"><span className="status-dot connected" /> Conta conectada</div>}
+            <Button disabled={!enabled || busy} onClick={() => void login()}><KeyRound /> {config.key ? 'Adicionar outra conta' : 'Entrar com OpenRouter'}</Button>
+            <div className="notice">Usar modelo gratuito automático · sem cobrança por modelo. A cota gratuita continua sujeita aos limites do OpenRouter.</div>
+          </>}
+          {(tab === 'ollama' || tab === 'lmstudio') && <>
+            <label>Endereço do servidor<input disabled={!enabled} value={config.url} onChange={event => updateProvider(tab, 'url', event.target.value)} placeholder={tab === 'ollama' ? 'http://localhost:11434/v1' : 'http://localhost:1234/v1'} /></label>
+            <Button variant="outline" disabled={!enabled || busy} onClick={() => void findModels(tab)}>{busy ? <Loader2 className="spin" /> : <RefreshCw />} Buscar modelos instalados</Button>
+            {models.length > 0 && <label>Modelo<select value={config.model} onChange={event => updateProvider(tab, 'model', event.target.value)}>{models.map(model => <option key={model} value={model}>{model}</option>)}</select></label>}
+            {models.length === 0 && config.model && <p className="muted">Modelo salvo: {config.model}. Busque os modelos para confirmar a conexão.</p>}
+          </>}
+          <label className="check-label"><input type="radio" checked={draft.provider === tab} onChange={() => setDraft(current => ({ ...current, provider: tab }))} /> Usar esta IA no chat</label>
+        </>}
+        {status && <div className="notice" role="status">{status}</div>}
+        <div className="security-note"><ShieldCheck size={17} /><span>Credenciais ficam no perfil local do Chrome e não são enviadas como contexto ao modelo.</span></div>
+      </div>
+    </div>
+    <footer className="modal-footer">{tab === 'github' && <Button variant="outline" disabled={!enabled || busy || !draft.githubToken} onClick={() => void testGitHub()}>{busy ? <Loader2 className="spin" /> : <CheckCircle2 />} Testar GitHub</Button>}<Button disabled={!enabled || busy} onClick={() => void save()}>Salvar</Button></footer>
+  </section></div>;
 }

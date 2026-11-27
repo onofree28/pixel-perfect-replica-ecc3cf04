@@ -1,16 +1,45 @@
 // Rotação automática entre modelos gratuitos do OpenRouter, com renovação quando o limite expira.
 export const FREE_AUTO = 'free:auto';
 export type Cooldowns = Record<string, number>; // modelo -> horário (ms) em que volta a ficar disponível
-const KEY = 'freeModelCooldowns';
-let memory: Cooldowns = {};
+const KEY_PREFIX = 'freeModelCooldowns:';
+const memory: Record<string, Cooldowns> = {};
+const scopeCache: Record<string, string> = {};
 let cache: { at: number; models: string[] } | null = null;
 const store = () => (globalThis as { chrome?: typeof chrome }).chrome?.storage?.local;
 
-export async function loadCooldowns(): Promise<Cooldowns> {
-  const s = store(); if (!s) return memory;
-  const r = await s.get(KEY); return (r[KEY] as Cooldowns) ?? {};
+async function hash(value: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
-async function saveCooldowns(c: Cooldowns) { memory = c; await store()?.set({ [KEY]: c }); }
+/** Usa usuário/workspace do OpenRouter; persiste apenas um hash, nunca a chave ou a identidade em texto. */
+export async function accountScope(apiKey: string, base: string, signal: AbortSignal): Promise<string> {
+  const keyHash = await hash(apiKey.trim());
+  const cacheKey = `${base}:${keyHash}`;
+  if (scopeCache[cacheKey]) return scopeCache[cacheKey];
+  let identity = apiKey.trim();
+  try {
+    const response = await fetch(`${base}/key`, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+    if (response.ok) {
+      const result = await response.json() as { data?: { creator_user_id?: string; workspace_id?: string } };
+      const account = [result.data?.creator_user_id, result.data?.workspace_id].filter(Boolean).join(':');
+      if (account) identity = account;
+    }
+  } catch (error) {
+    if (signal.aborted) throw error;
+  }
+  const scope = await hash(identity);
+  scopeCache[cacheKey] = scope;
+  return scope;
+}
+export async function loadCooldowns(scope: string): Promise<Cooldowns> {
+  const key = `${KEY_PREFIX}${scope}`;
+  const s = store(); if (!s) return memory[key] ?? {};
+  const r = await s.get(key); return (r[key] as Cooldowns) ?? {};
+}
+async function saveCooldowns(scope: string, cooldowns: Cooldowns) {
+  const key = `${KEY_PREFIX}${scope}`;
+  memory[key] = cooldowns; await store()?.set({ [key]: cooldowns });
+}
 
 /** Quando o limite se renova: usa o cabeçalho de reset; senão, limite diário renova à 00:00 UTC e o por minuto em 60s. */
 export function resetTime(now: number, status: number, message: string, resetHeader?: string | null): number {
@@ -34,4 +63,4 @@ export async function freeModels(base: string, signal: AbortSignal): Promise<str
     .sort((a, b) => (b.context_length ?? 0) - (a.context_length ?? 0)).map(m => m.id);
   cache = { at: Date.now(), models }; return models;
 }
-export async function markLimited(model: string, until: number) { const c = await loadCooldowns(); c[model] = until; for (const k of Object.keys(c)) if ((c[k] ?? 0) <= Date.now()) delete c[k]; c[model] = until; await saveCooldowns(c); }
+export async function markLimited(model: string, until: number, scope: string) { const c = await loadCooldowns(scope); c[model] = until; for (const k of Object.keys(c)) if ((c[k] ?? 0) <= Date.now()) delete c[k]; c[model] = until; await saveCooldowns(scope, c); }
