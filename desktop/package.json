@@ -1,0 +1,53 @@
+{
+  "name": "lovable-chat-assistant-desktop",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Desktop local preview shell for Lovable Chat Assistant projects",
+  "author": "Lovable Chat Assistant",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "assets": "node scripts/create-icon.mjs && powershell -ExecutionPolicy Bypass -File scripts/create-brand-assets.ps1",
+    "dist": "npm run assets && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
+    "png-to-ico": "^3.0.2"
+  },
+  "build": {
+    "appId": "dev.lovablechatassistant.desktop",
+    "productName": "Lovable Chat Assistant Desktop",
+    "artifactName": "Lovable-Chat-Assistant-Desktop-Setup-${version}.${ext}",
+    "directories": {
+      "output": "installer-br"
+    },
+    "icon": "build/app.ico",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/app.ico",
+      "uninstallerIcon": "build/app.ico",
+      "installerHeaderIcon": "build/app.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Lovable Chat Assistant Desktop",
+      "language": "1046",
+      "installerLanguages": ["pt_BR"]
+    }
+  }
+}

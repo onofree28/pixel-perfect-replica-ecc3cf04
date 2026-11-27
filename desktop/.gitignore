@@ -1,0 +1,8 @@
+node_modules/
+release/
+installer/
+installer-output/
+installer-ptbr/
+installer-br/
+build/
+*.log

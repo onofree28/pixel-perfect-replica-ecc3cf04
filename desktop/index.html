@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Lovable Chat Assistant Desktop</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="mark">&lt;/&gt;</div><div><strong>Lovable Chat</strong><span>Assistant <i>Desktop</i></span></div></div>
+      <div class="sidebar-caption">WORKSPACE</div>
+      <button class="nav active" type="button"><span>✦</span> Workspace</button>
+      <button class="nav" id="nav-repos" type="button"><span>▧</span> Repositórios</button>
+      <div class="sidebar-bottom"><div class="github-avatar" id="avatar">GH</div><div class="account-copy"><strong id="account-name">Não conectado</strong><span id="account-subtitle">Conecte seu GitHub</span></div><button class="icon-button" id="logout" title="Desconectar GitHub" aria-label="Desconectar GitHub" hidden>↪</button></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar"><div><span class="eyebrow">AMBIENTE DESKTOP</span><h1>Seu projeto</h1></div><div class="repo-chip" id="selected-chip" hidden><span class="status-dot"></span><span id="selected-name"></span></div></header>
+
+      <section class="welcome card" id="welcome">
+        <div class="welcome-icon">✦</div><div class="welcome-copy"><h2>Continue seu projeto com segurança</h2><p>Conecte o GitHub para escolher um repositório ou começar um novo. Os arquivos só serão baixados para uma pasta temporária quando você abrir a prévia.</p></div>
+        <button class="primary" id="connect"><span class="github-glyph">●</span> Conectar com GitHub</button>
+        <div class="device-code" id="device-code" hidden><span>Digite este código na página do GitHub</span><strong id="code-value"></strong><small>A página de autorização abrirá no navegador.</small></div>
+      </section>
+
+      <section class="workspace card" id="workspace" hidden>
+        <div class="section-heading"><div><span class="eyebrow">SEU GITHUB</span><h2>Escolha um repositório</h2><p>Selecione um projeto existente ou crie um repositório novo para começar.</p></div><button class="secondary" id="refresh">↻ Atualizar</button></div>
+        <div class="repo-picker"><label for="repo-select">Repositório</label><select id="repo-select"><option value="">Selecione um repositório…</option></select></div>
+        <details class="create-details"><summary><span class="plus">＋</span> Criar repositório novo</summary><div class="create-form"><label>Nome do repositório<input id="new-name" placeholder="meu-novo-projeto" maxlength="100"></label><label>Descrição <span class="optional">opcional</span><input id="new-description" placeholder="Uma breve descrição"></label><label class="check-row"><input id="new-private" type="checkbox" checked> Repositório privado</label><label class="check-row"><input id="new-starter" type="checkbox" checked> Incluir um site inicial pronto para prévia</label><button class="secondary" id="create-repo">Criar no GitHub</button></div></details>
+        <div class="selected-project" id="selected-project" hidden><div class="project-detail"><div class="project-icon">⌘</div><div><strong id="repo-title"></strong><span id="repo-description"></span></div><span class="branch" id="repo-branch"></span></div><div class="project-actions"><div class="preview-explain"><strong>Prévia local</strong><span>Baixa uma cópia temporária, instala dependências e abre o app. Scripts do projeto serão executados neste computador.</span></div><button class="primary" id="preview"><span>▷</span> Visualizar projeto</button><button class="secondary" id="stop" hidden>Parar prévia</button></div></div>
+      </section>
+
+      <section class="preview-status card" id="preview-card" hidden><div class="section-heading compact"><div><span class="eyebrow">PRÉVIA LOCAL</span><h2 id="status-title">Preparando projeto…</h2></div><button class="secondary" id="open-preview" hidden>Abrir prévia</button></div><div class="progress-track"><div class="progress-bar" id="progress"></div></div><p id="status-message">Aguardando ação.</p><pre id="output">Quando você pedir para visualizar, os arquivos do GitHub serão copiados para uma pasta temporária neste computador.</pre></section>
+      <footer class="privacy-note"><span>♧</span> As credenciais GitHub ficam criptografadas no computador. Arquivos temporários são removidos ao parar a prévia.</footer>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body></html>

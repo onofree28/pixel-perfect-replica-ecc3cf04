@@ -182,6 +182,18 @@
 .message-body { min-width: 0; } .message.user .message-body { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem .9rem; }
 .message-body header { display: flex; align-items: center; gap: .6rem; font-size: .8rem; } .message-body header span { font-family: var(--font-mono); font-size: .66rem; color: var(--muted-foreground); }
 .message-body header button { margin-left: auto; width: 26px; height: 26px; opacity: .5; }
+.pending-action-card { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--primary); border-radius: calc(var(--radius) + 2px); background: color-mix(in oklch, var(--primary) 7%, var(--panel)); }
+.pending-action-card > header > div { display: grid; gap: .18rem; }
+.pending-action-card > header strong { font-size: .92rem; }
+.pending-action-card > header span, .pending-action-card > p { color: var(--muted-foreground); font-size: .75rem; }
+.pending-preview-list { display: grid; gap: .35rem; }
+.pending-preview-row { display: flex; align-items: center; gap: .45rem; min-width: 0; padding: .3rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.pending-preview-row label { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 0; cursor: pointer; font-family: var(--font-mono); font-size: .7rem; }
+.pending-preview-row label input { accent-color: var(--primary); }
+.pending-preview-row label span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pending-action-buttons { display: flex; flex-wrap: wrap; gap: .45rem; }
+.pending-action-buttons > button:first-child { flex: 1; }
+.pending-action-card > p { margin: -.35rem 0 0; }
 .markdown { font-size: .9rem; line-height: 1.65; overflow-wrap: anywhere; } .markdown > * + * { margin-top: .7rem; }
 .markdown ul { list-style: disc; padding-left: 1.2rem; } .markdown ol { list-style: decimal; padding-left: 1.2rem; }
 .markdown a { color: var(--primary); text-decoration: underline; } .markdown h1, .markdown h2, .markdown h3 { font-weight: 700; }

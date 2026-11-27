@@ -9,7 +9,9 @@ export class GitHub {
     if (!response.ok) {
       const detail = await response.json().catch(() => ({})) as { message?: string };
       const friendly: Record<number, string> = { 401: 'Token GitHub inválido.', 403: 'GitHub recusou o acesso. Verifique permissões e limite de requisições.', 404: 'Repositório, branch ou arquivo não encontrado.', 409: 'Conflito no repositório.', 422: 'GitHub recusou a alteração. A branch pode ter sido atualizada ou protegida.' };
-      throw new Error(`${friendly[response.status] ?? `GitHub: erro ${response.status}.`} ${detail.message ?? ''}`);
+      const error = new Error(`${friendly[response.status] ?? `GitHub: erro ${response.status}.`} ${detail.message ?? ''}`) as Error & { status: number; detail: string };
+      error.status = response.status; error.detail = detail.message ?? '';
+      throw error;
     }
     return response.json() as Promise<T>;
   }
