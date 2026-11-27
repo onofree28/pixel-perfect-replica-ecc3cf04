@@ -10,6 +10,12 @@ export function sensitiveContent(text: string): boolean {
 export function safePath(path: string): boolean {
   return path.length > 0 && path.length < 500 && !path.startsWith('/') && !path.includes('\\') && !path.split('/').some(p => !p || p === '.' || p === '..' || p === '.git') && !/[\x00-\x1f]/.test(path);
 }
+export function findTreeFile(path: string, files: TreeFile[]): TreeFile | undefined {
+  const exact = files.find(file => file.path === path);
+  if (exact) return exact;
+  const matches = files.filter(file => file.path.toLocaleLowerCase() === path.toLocaleLowerCase());
+  return matches.length === 1 ? matches[0] : undefined;
+}
 export function textFile(path: string): boolean {
   return !/\.(png|jpe?g|gif|webp|ico|woff2?|ttf|pdf|zip|gz|mp[34]|wav|exe|bin|lock)$/i.test(path);
 }
